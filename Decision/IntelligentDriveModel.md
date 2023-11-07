@@ -181,3 +181,136 @@ v'_e(s)\geq 0,\,\,\, v_e(0) = 0,\,\,\, \lim_{s\rightarrow \infty}v_e(s) = v_0
 \end{equation}
 $$
 ### Gipps' Model
+#### Safe Speed
+引入一个安全速度的概念，$v_{safe}(s,v_l)$,基于以下假设：
+1. 制动机动总是以恒定的减速度b执行
+2. 存在一个恒定的反应时间
+3. 即使前车突然减速，甚至到完全停止下来，与前车的间隙也会不会小于一个最小值$s_0$  
+
+通过条件一，可以计算出前车的刹车距离：$\Delta x_l = \frac{v^2_l}{{2b}}$
+通过条件二，计算带反应时间的自车刹车距离，$\Delta x = v\Delta t +  \frac{v^2}{{2b}}$
+通过条件三，计算出与前车的间距：
+$$
+\begin{equation}
+s \geq s_0 + v\Delta t +  \frac{v^2}{{2b}} - \frac{v^2_l}{{2b}}
+\end{equation}
+$$
+由此可以计算出安全速度为：
+$$
+\begin{equation}
+v_{safe}(s,v_l) = -b * \Delta t + \sqrt {b^2\Delta t^2 + v^2_l + 2b(s - s_0)}
+\end{equation}
+$$
+
+#### Model Equation
+The simplified Gipp's model is defined as an iterated map with the 'safe speed' as ite main component:
+$$
+\begin{equation}
+v(t + \Delta t) = min[v + a\Delta t,v_0,v_{safe}(s,v_l)] \,\,\,\, Gipps' model
+\end{equation}
+$$
+
+该模型反应了如下特性：
+* 仿真时间和反应时间一致
+* 如果当前车速比 $v_{safe}+a\Delta t$或者 $ v_0 - a \Delta t$ 大，那么车速会在下一次迭代中变为 $v_0$ 或 $v_{safe}$ 中的最小值。
+* 否则车辆就会以恒定的加速度a加速到安全速度或者期望速度。
+
+#### Steady-State Equilibrium
+the homogeneous(同质化) steady state implies $v(t+\Delta t) = v_l = v$,thus:  
+$$
+\begin{equation}
+v = min(v_0,v_safe) = min(v_0,-b\Delta t + \sqrt{b^2\Delta t^2 +v^2 + 2b(s-s_0)})
+\end{equation}
+$$
+
+其中，生成稳定状态的车速间隙关系式为：
+$$
+\begin{equation}
+v_e(s)=max(0,min(v_0,\frac{s-s_0}{\Delta t}))
+\end{equation}
+$$
+
+假设车长为$l$,the familiar "triangular" fundamental diagram:
+$$
+\begin{equation}
+Q_e(\rho) = min(v_0\rho,\frac{1-\rho l_{eff}}{\Delta t})
+\end{equation}
+$$
+其中，$l_{eff}=(l+s_0)$
+
+### Intelligent Driver Model
+#### Required Model Properties
+IDM模型需要以下基础的假设：
+1. 加速度满足Model Criteria 提到的完整模型的一般条件的五个公式。
+2. 与前车的平衡保险杠到保险杠距离不小于“安全距离”$s_0 +vT$其中$s_0$是最小（保险杠到保险杠）间隙，T 是（保险杠到保险杠）与领先车辆的时间差距。
+3. 刹车策略，智能控制车辆如何在障碍物或者红绿灯前停下来。在正常条件下，刹车方式是舒适的，加速度为舒适值b,并在达到稳态跟车情况或完全停止之前平稳地降至零。在危急情况下，减速度超过舒适值直至避免危险，剩余的制动操作（如果适用）将以常规舒适减速继续进行。
+4. 不同驾驶模式之间的转换是smooth的，或者说jerk是在舒适范围内的。等价于说加速度函数 $a_{mic}(s,v,v_l)(或者 \tilde a_{mic}(s,v,\Delta v))中的三个变量都是可微分的。
+5. 该模型应该尽可能简洁。 每个模型参数应该只描述驾驶行为的一个方面(这有利于模型校准)。此外，参数应符合直观的解释并假设合理的值。
+
+#### Mathematical Description
+上面要求的特性可有下面加速度公式实现：
+$$
+\begin{equation}
+\dot v = a\left[ 1 - \left(\frac{v}{v_0}\right)^ \delta - \left(\frac{s^*(v,\Delta v)}{s}\right)^2 \right]
+\end{equation}
+$$
+
+$$
+\begin{equation}
+s^*(v,\Delta v) = s_0 +max\left(0,vT+\frac{v\Delta v}{2\sqrt(ab)}\right)
+\end{equation}
+$$
+动态项$\frac{v\Delta v}{2\sqrt(ab)}$是智能刹车策略。  
+
+#### Parameters
+从上述公式可以看出：
+* 当车辆从静止开始加速时，加速度最大值为a,并且加速度随着速度的增大了而减小，直至速度为 $v_0$时，加速度为0，参数 $\delta$作用如下：其值越大，接近期望速度时加速度减小得越晚,范围在 $(1,\infty)$
+* 跟车时，跟车间隙为安全距离 $(s_0,vT)$,当接近较慢或停止的车辆时，减速度通常不超过舒适减速度 b． 在这些情况之间的转换期间，加速功能是平稳的。
+* 当接近较慢或停止的车辆时，减速度通常不超过舒适减速度 b． 在这些情况之间的转换期间，加速功能是平稳的。
+由于 IDM 没有明确的反应时间，并且其驾驶行为是根据连续可微的加速度函数给出的，因此 IDM 比人类驾驶员更接近地描述了自适应巡航控制 (ACC) 的半自动驾驶的特性。 然而，它可以轻松扩展以捕捉人为因素，例如估计错误、反应时间或观察前方的几辆车。
+![IDM-models](/Decision/elements/IDM_model.png "idm") 
+与之前讨论的模型相比，IDM 明确区分了安全时间间隙T、速度适应时间 $\tau = v_0/a$ 和反应时间 $T_r$,如下表，这使我们不仅能够在模型中反映 ACC 和人类驾驶员之间的概念差异，还能区分更细微的驾驶风格，例如“缓慢但追尾”(高的$\tau = v_0/a$值，低的T值)，或“敏捷而安全的驾驶”(低的$\tau$值，正常的T值)。此外，所有这些驾驶风格都可以被 ACC 系统（反应时间 Tr≈0，原始 IDM）、细心的驾驶员（Tr相对较小，扩展 IDM）和昏昏欲睡的驾驶员（Tr相对较大，扩展 IDM）独立采用.
+![table](/Decision/elements/table1.png "table1")  
+
+#### Intelligent Braking Strategy
+IDM模型中所需的距离 $s*$中的项 $v\Delta v /(2ab)$是自车接近前车时候的动态行为。由于需要从平衡状态到平衡状态的连续转换，平衡项 $s_0 + vT$ 始终影响 $s^*$ 为了研究制动策略本身，我们将这些项以及IDM加速方程的自由加速项 $a[1-(v/v_0)^\delta ]$ 设置为零。当接近一个静止车辆或者红灯时，会得到:
+
+$$
+\begin{equation}
+\dot v = -a\left( \frac{s^*}{s}\right)^2 = - \frac{av^2(\Delta v)^2}{4abs^2} = - \left( \frac{v^2}{2s}\right)^2 \frac{1}{b}
+\end{equation}
+$$
+运动减速度定义为：
+$$
+\begin{equation}
+b_{kin}=\frac{v^2}{2s}
+\end{equation}
+$$
+于是加速度公式可以写为：
+$$
+\begin{equation}
+\dot v = - \frac{b^2_{kin}}{b}
+\end{equation}
+$$
+当以减速度 $b_{kin}$ 制动时，制动距离恰好是到前车的距离，因此 $b_{kin}$ 是防止碰撞所需的最小减速度。所以IDM的自调节制动策略为：  
+* “危急情况”的定义是 $b_{kin}$ 大于舒适减速度 b.在这种情况下，实际的减速甚至比必要的还要强，$|\dot v| = b^2_{kin}/b > b_{kin}$,这种过度补偿会减少 $b_{kin}$ 从而有助于“重新控制”情况.
+* 在非紧急情况中 $(b_{kin} < b)$,实际的减速度小于运动学减速度， $b_{kin}$随着时间的推移而增加并接近舒适减速度。它的微分公式为：
+$$
+\begin{equation}
+\frac{{\rm d}b_{kin}}{{\rm d}t} = \frac{vb_{kin}}{s b} (b - b_{kin})
+\end{equation}
+$$
+
+#### Steady-State Equilibrium
+通过假设 $\dot v = \Delta v = 0$ 从加速度函数中可以得到稳定均衡状态下的IMD模型：  
+$$
+\begin{equation}
+1 - \left( \frac{v}{v_0} \right)^\delta - \left( \frac{s_0 +vT}{s}\right)^2 = 0
+\end{equation}
+$$
+那么有：
+$$
+\begin{equation}
+s = s_e(v) = \frac{s_0 + vT}{\sqrt{1 - \left(\frac{v}{v_0}\right)^\delta}}
+\end{equation}
+$$
