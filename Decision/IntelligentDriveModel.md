@@ -314,3 +314,53 @@ $$
 s = s_e(v) = \frac{s_0 + vT}{\sqrt{1 - \left(\frac{v}{v_0}\right)^\delta}}
 \end{equation}
 $$
+
+### Improved Acceleration Function
+
+IDM模型在以下几个方面仍存在一定缺陷：  
+* 如果实际速度超过了期望速度(比如说进入了一个限速更低的区域)，减速度异常的大，特别是对于加速度指数 $\delta $的大值。
+* 接近期望速度 $v_0$时，稳态间隙变得远大于 $s^*(v,0) = s_0,vT$ ，因此模型参数T失去了其作为所需时间间隙的意义。这意味着一排相同的驾驶员和车辆的分散程度比观察到的要多得多。此外，并非所有汽车都能达到所需的速度。
+* 如果实际间隙远小于期望间隙（如果变道时另一辆车切得太近，可能会发生这种情况，则重新获得所需间隙的制动反应会被放大。  
+
+为了改善 $v > v_0$ 的行为，我们要求在没有与其他车辆或障碍物相互作用的情况下，最大减速度不得超过舒适减速度b。参数 $\delta$ 在新的机制中也应保留其含义，即，对于低值，导致平滑减速到新的期望速度，对于高值，更加“机械(robotically)”地减速。进一步的，自由加速度函数 $a_{free}(v)$应该是微分连续的，并且在 $v \leq v_0$时保持不变，于是有 $a_{free}(v)= \lim_{s\rightarrow \infty}(s,v,\Delta v),\,\,\,for\,\, v \leq v_0 $,可能满足这些条件的最简单的自由加速度函数是:
+$$
+\begin{equation}
+a_{free}(v) = 
+\left\{
+\begin{aligned}
+a\left[1 - \left(\frac{v}{v_0}\right)^\delta \right] \,\,\, if\,\,v \leq v_0\\
+-b\left[1 - \left(\frac{v_0}{v}\right)^{a\delta/b }\right] \,\,\, if\,\,v > v_0
+\end{aligned}
+\right.
+\end{equation}
+$$
+为了改善接近期望速度时的行为，我们收紧了Required Model Properties第二个条件，要求均衡间隙 $s_e(v) = s^*(v,0)$ 在 $v < v_0$时，应该严格等于 $s_0 +vT$.然而，我们希望尽可能保守地实施任何修改，以保留 IDM 的所有其他有意义的特性(尤其是“智能”制动策略)。因此，更改只会影响到：
+* 接近稳态均衡时，如果 $z(s,v,\Delta v) = s^*(v,\Delta v)/s \approx 1$
+* 当车速为 $v \approx v_0,and\,\, v>v_0$
+我们可以通过区分 $z = s^*(v,\Delta v)/s < 1$ (实际间隙大于所需间隙)和 $ z \geq 1$ 的情况来实现这一点。对于满足 $ z = s^*(v,\Delta v)/s < 1 $ 和 $v < v_0$ 的所有输入值，新条件要求 $\tilde a_{mic} = 0.满足 $v < v_0$ 的所有这些条件的最简单的加速函数可能由下式给出:
+$$
+\begin{equation}
+\frac{dv}{dt}|_{v\leq v_0}
+\left\{
+\begin{aligned}
+a(1-z^2) \,\,\,\,\,\,\, z = \frac{s^*(v,\Delta v)}{s} \geq 1 \\
+a_{free}(1 - z^{(2a)/a_{free}}) \,\,\,\, otherwise
+\end{aligned}
+\right.
+\end{equation}
+$$
+对于$v > v_0$,并没有稳定的跟随距离，我们简单地将自由加速度 $a_{free}$ 和相互作用加速度 $a(1-z^2)$ 结合起来，使得相互作用在 $z \leq 1$ 时消失，并且所得的加速度函数连续可微：
+$$
+\begin{equation}
+\frac{dv}{dt}|_{v > v_0}
+\left\{
+\begin{aligned}
+a_{free} + a(1-z^2) \,\,\,\,\,\,\,z(v,\Delta v) \leq 1 \\
+a_{free} \,\,\,\, otherwise
+\end{aligned}
+\right.
+\end{equation}
+$$
+这种改进的智能驾驶员模型 (IIDM) 使用与IDM相同的模型参数集，并产生基本相同的行为，除非车辆在接近所需速度时相互跟随或当车辆快于所需速度时。
+
+### Model for Adaptive Cruise Control
