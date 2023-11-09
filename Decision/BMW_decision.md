@@ -46,5 +46,155 @@ $$
 奖励应该包括惩罚碰撞、总加速度（提供舒适度）以及与交通法和基于曲率的参考速度的偏差。
 由于所使用的自适应置信树 (ABT) 算法对多个片段进行采样来近似解决方案，因此不需要明确指定 POMDP 的模型属性（例如概率分布），而是将其作为生成模型
 
-### Partially Observable Markov Decision Process
+### A.Partially Observable Markov Decision Process
 POMDP由 $\left<\mathcal{X,A,T,O,Z,R},b_0,\gamma\right>$
+优化目标为：
+$$
+\begin{equation}
+\pi^* := \argmax_{\pi}\left(
+E\left[
+\sum^{\infty}_{\tau = 0} \gamma^{t_{tau}}
+R(x^{t_{\tau}},\pi(b^{t_\tau})) | b^{t_0},\pi
+\right]
+\right)
+\end{equation}
+$$
+### B Statespace
+车辆的位置由位置 $s_k$ 处车辆路线 $r_k$ 上的Frenet-Serret公式描述。虽然从车道匹配坐标系L到全局坐标系W，WTL的变换不是双射的，但 $s_k$ 仍然可以从全局坐标计算，因为粒子的路线 $r_k$ 是已知的并且是状态空间的一部分。
+自车的状态定义如下：
+$$
+\begin{equation}
+x_0 = \left(
+\begin{aligned}
+s_0 \\
+v_0
+\end{aligned}
+\right)
+\end{equation}
+$$
+他车的状态为：
+$$
+\begin{equation}
+x_k = \left(
+\begin{aligned}
+s_k \\
+v_k \\
+r_k
+\end{aligned}
+\right)
+\end{equation}
+$$
+其中， $r_k$为隐藏变量，无法被直接观测到，含义为车k可能选的的行驶路线。如下图所示  
+![fig3](/Decision/elements/BMW_fig3.png "fig3") 
+
+### C. Actions and Motion Model
+他车的转移模型为：
+$$
+\begin{equation}
+
+\left(
+\begin{aligned}
+s'_k \\ v'_k \\ r'_k
+\end{aligned}
+\right)
+=
+\left(
+\begin{matrix}
+1 & \Delta t & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{matrix}
+\right)
+\left(
+\begin{aligned}
+s_k \\ v_k \\ r_k
+\end{aligned}
+\right)
++
+\left(
+\begin{matrix}
+\frac{1}{2} (\Delta t)^2 \\ \Delta t \\0
+\end{matrix}
+\right)
+a_k,\, k \in \{1,...,k\}
+\end{equation}
+$$
+如之前提到的，假设代表车辆任何粒子的路径都是恒定的，即$r'_k = r_k$。加速度$a_k$定义为跟随参考速度 $a_{ref}$ 的加速度和基于交互的加速度 $a_{int}$ 的总和：
+$$
+\begin{equation}
+a_{int,k} = 
+\begin{cases}
+0, &\text{if}\,\,c(r_k,r_0) = 0, \\
+-1.5,&\text{if} \,\,c(r_k,r_0) = 1 \land (t_{c,k} - t_{c,0}) \in [1,5]
+\end{cases}
+\end{equation}
+$$
+$t_c$表示的是两条路线到达冲突点的时间，假设在恒定速度 $v_k$下,基于交互的加速度是根据经验选择的启发值，但也可以从训练数据中学习或者是概率函数。由于求解器是基于粒子的，因此运动模型生成的加速度还会受到模拟噪声($\sigma$)的干扰。 一方面，这允许在纵向方向上代表各种单独的驾驶风格。尽管如此，我们还是希望有一个尽可能好的运动模型（学习的或调整的）以保持较低的($\sigma$).这种情况是因为高($\sigma$)导致其他车辆的未来位置/速度的高度不确定性，从而导致更保守的策略。在这种case下，随着未来位置分布的增长，这样没有碰撞的潜在状态就会减少。由此产生的运动模型的总加速度现在可以正式写成如下：
+$$
+\begin{equation}
+a_k = \min (a_{ref,k} +a_{int,k},a_{max}) + \mathcal{N}(0,\sigma^2)
+\end{equation}
+$$
+自车的状态转移方程也是如此，只是路线不同而已。  
+
+### D. Reward and Transiton Costs
+奖励函数定义为：
+$$
+\begin{equation}
+R(x,a) = R_{crash}(x) +R_v{x} +R_{acc}(a)
+\end{equation}
+$$
+$ R_{crash}(x) $:如果发生了碰撞，则有一个巨大的负值。  
+$ R_v(x) $:与参考速度的偏差（定义为没有车辆的道路上的平滑速度）会产生不同的成本，具体取决于偏差的符号。$ if v_0 >v_{ref}$，有 $R_v(x)= -K_{v+}(v_{ref}- v_0)^2$,$ if v_0 <v_{ref}$，有 $R_v(x)= -K_{v-}(v_{ref}- v_0)$,通过二次惩罚过高的速度，自车不太可能明显超过所需的速度。通过仅以线性方式惩罚过低的速度，规划器尝试以所需的速度行驶，但允许较慢的一些情况(例如，由于临时占用的车道)。 改变加速度需要消耗 $R_{acc}$ 来提供舒适度。
+
+### E. 观测空间
+观测空间定义为：
+$$
+\begin{equation}
+\mathbf{o} = (o_0,o_1,...,o_k)^T
+\end{equation}
+$$
+由于算法中不考虑传感器噪声（与离线场景生成相反）并且自动驾驶汽车的路线已知，因此其状态是完全可观察的，并表示为
+$$
+\begin{equation}
+o_0 = 
+\left( \begin{matrix}s_0 \\ v_0 \end{matrix} \right)
+\end{equation}
+$$
+他车可能的行驶路线是无法直接观测的，它们的观测方程定义为：
+$$
+\begin{equation}
+o_0 = 
+\left( \begin{matrix}v_k \\ x_k \\ y_k \end{matrix} \right)
+\end{equation}
+$$
+
+### Observation Model and Prediction
+ABT算法通过对具有不同路径假设的粒子进行采样生成置信树来求解POMDP。因此，观测模型$Z(o,x',a)=P(o|x',a)不能明确给出，而是必须在动作a之后的新状态 $x'$ 下对潜在观测值进行采样。尽管对于车辆 $N_k$来说，它的路线$r_k$无法被观测，但是是状态 $x_k$ 的一部分，而 $x'_k$可以在任意节点通过状态转移函数获取到。通过明确的变换 WTL可以创建新状态的相应观察。 $(s',v',r') \stackrel{WTL} \longrightarrow (v'_{obs},x'_{obs},y'_{obs})$  
+为了模拟未来时间步长中另一辆车所选择的未知路线的预测不确定性，采用了一个简单的判别分类器。我们提出了一个朴素的贝叶斯分类器，带有二维的特征向量 $\mathbf{f}_k$(基于车速和位置,如图4)，可以从观测空间中获得。
+$$
+\begin{equation}
+\mathbf{f}_k = \left( \begin{matrix}f_{k,1} \\ f_{k,2} \end{matrix}\right) = \left( \begin{matrix}
+|v'_k - v_{ref,r^(i)}(s'_k)| \\
+\left\|[x'_k,y'_k]^T - [x_{k,pred,r^{(i)}},y_{k,pred,r^{(i)}}]^T \right\|_2
+\end{matrix}\right)
+\end{equation}
+$$
+$N_k$在一个确定的路线上 $r_k = r^{(i)} \in M^{(i)}$的可能性，由贝叶斯公式推得：
+$$
+\begin{equation}
+P(r_k = r^{(i)}|f_{k,1},f_{k,2}) = 
+\frac{P(r^{(i)}) P(f_{k,1},f_{k,2}|r^{(i)})}{P(f_{k,1},f_{k,2})}
+\end{equation}
+$$
+![fig4](/Decision/elements/BMW_fig4.png "fig4") 
+假设每条路线有同样的先验概率，(P(r_k = r^{(1)})=P(r_k = r^{(2)})=P(r_k = r^{(3)})=...),且每条概率是独立的，那么上式可以重写写为：
+$$
+\begin{equation}
+P(r_k = r^{(i)}|f_{k,1},f_{k,2}) = 
+\frac{P(r^{(i)}) P(f_{k,1},f_{k,2}|r^{(i)})}
+{\sum^I_{l=1}P(f_{k,1}|r^{(l)})P(f_{k,2}|r^{(l)})}
+\end{equation}
+$$
+
+尽管可以从样本数据中学习到 $P(f_{1/2}|r^{(I)})$，但为了模拟预测，我们简单地假设 $P(f_1|r^{(i)}) = \mathcal{N}(0,4.0)$，$P(f_2|r^{(i)}) = \mathcal{N}(0,6.0)$ 为正态分布。现在根据从式(20)中采样的可能的下一条路径r(i)为每个粒子生成观测值。
