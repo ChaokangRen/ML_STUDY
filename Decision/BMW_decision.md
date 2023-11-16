@@ -3,8 +3,8 @@
 * 其他驾驶员的意图未知
 * 它们未来的纵向运动未知
 * 与自车交互的可能性
-* 传感器的噪音
-![fig1](/Decision/elements/BMW_fig1.png "fig1")  
+* 传感器的噪音  
+![fig1](/Decision/elements/BMW_fig1.png "fig1")    
 这篇文章的主要工作就是为自动驾驶展示了一个在线的POMDP算法。
 ## Related Work
 ### D. Belief state planning
@@ -16,8 +16,8 @@ belief state规划表示一个规划问题，仅能得到当前状态的概率�
 
 ### Problem Statement
 这项工作的重点是自我车辆的在线决策，即生成一系列期望的加速度 $a_0 = (a^{t_0}_0,a^{t_1}_0,a^{t_2}_0,...),用于穿越一个任意布局和未知其他交通参者的数量以及意图的无信号灯的路口。
-假设自身车辆r0的路径关于静态障碍物是无碰撞的，并且由路径规划器先验地生成或者简单地从给定地图的道路几何形状中检索。第二部，纵向速度是通过我们的算法沿着r0计算出的。这种做法在文献[33]中被称为路径速度分解，并将轨迹规划问题简化为一维工作空间。   
-环境有一系列的agents组成，$ \mathcal{N} = {N_0,...,N_K}，自车下标为0.对于其他agent，都有一组未来路径的假设。自车与其他车的路径假设有一个拓扑地图 $\mathcal{R}= {r^{(0)},r^{(1)},...,r^{(I)}}$,其中， $r^{(i)} = \left\{\overrightarrow{q_{i,0}q_{i,1}},...,\overrightarrow{q_{i,J-1}q_{i,J}}\right\}$,$q_{i,j}$表示路径i的第j个点的位置坐标。每个agent都有一个相应的路径映射，$r_k : N_k$ ,该agent的速度为 $v_k(t) \in [0,v_{max}]$.每条路径都有一组后续路径假设 $\mathcal{M}^{(i)} = succ(r^{(i)})$.agent从当前路径通过未知的概率 $P(r'_k|r_k)$ 转移到下一个路径 $r'_k$.   
+假设自身车辆r0的路径关于静态障碍物是无碰撞的，并且由路径规划器先验地生成或者简单地从给定地图的道路几何形状中检索。第二部，纵向速度是通过我们的算法沿着r0计算出的。这种做法在文献[33]中被称为路径速度分解，并将轨迹规划问题简化为一维工作空间。     
+环境有一系列的agents组成， $\mathcal{N} = {N_0,...,N_K}，自车下标为0.对于其他agent，都有一组未来路径的假设。自车与其他车的路径假设有一个拓扑地图 $\mathcal{R}= {r^{(0)},r^{(1)},...,r^{(I)}}$,其中， $r^{(i)} = \left\{\overrightarrow{q_{i,0}q_{i,1}},...,\overrightarrow{q_{i,J-1}q_{i,J}}\right\}$,$q_{i,j}$表示路径i的第j个点的位置坐标。每个agent都有一个相应的路径映射，$r_k : N_k$ ,该agent的速度为 $v_k(t) \in [0,v_{max}]$.每条路径都有一组后续路径假设 $\mathcal{M}^{(i)} = succ(r^{(i)})$.agent从当前路径通过未知的概率 $P(r'_k|r_k)$ 转移到下一个路径 $r'_k$.   
 <font color=red>
 note:一辆车可能有多个潜在的路线，但最终执行的时候只会有一条。  
 </font>
@@ -84,7 +84,7 @@ r_k
 \right)
 \end{equation}
 $$
-其中， $r_k$为隐藏变量，无法被直接观测到，含义为车k可能选的的行驶路线。如下图所示  
+其中， $r_k$为隐藏变量，无法被直接观测到，含义为车k可能选的的行驶路线。如下图所示     
 ![fig3](/Decision/elements/BMW_fig3.png "fig3") 
 
 ### C. Actions and Motion Model
@@ -186,8 +186,8 @@ $$
 P(r_k = r^{(i)}|f_{k,1},f_{k,2}) = 
 \frac{P(r^{(i)}) P(f_{k,1},f_{k,2}|r^{(i)})}{P(f_{k,1},f_{k,2})}
 \end{equation}
-$$
-![fig4](/Decision/elements/BMW_fig4.png "fig4") 
+$$  
+![fig4](/Decision/elements/BMW_fig4.png "fig4")   
 假设每条路线有同样的先验概率，(P(r_k = r^{(1)})=P(r_k = r^{(2)})=P(r_k = r^{(3)})=...),且每条概率是独立的，那么上式可以重写写为：
 $$
 \begin{equation}
