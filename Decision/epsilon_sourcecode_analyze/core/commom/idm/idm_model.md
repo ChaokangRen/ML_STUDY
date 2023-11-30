@@ -1,5 +1,5 @@
 # 类 IntelligentDriverModel
-父类是simulator
+该类的所有的成员包括成员函数都是公共的。
 
 成员变量：
 1. Param  
@@ -30,4 +30,6 @@
         : s(s_), v(v_), s_front(s_front_), v_front(v_front_) {}
   };
 ```
-状态分别是横纵向位置和横纵向速度，带一个构造函数；
+状态分别是自车和前车横纵向速度
+
+成员函数：该模块有三个成员函数，均用于得到IDM模型下的期望加速度，不同的是一个用IDM模型、一个用IIDM模型，还有一个用ACC模型。该公式均可以在书Traffic Flow Dynamics中找出。也可以直接看IMD.md
