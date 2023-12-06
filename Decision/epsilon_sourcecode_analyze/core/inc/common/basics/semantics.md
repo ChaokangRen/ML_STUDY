@@ -26,7 +26,28 @@ public:
     }
 
     GridMapND();
-
-    
 }
+```
+成员函数：
+```C++
+ErrorType GridMap<T,N_DIM>::CheckIfEqualUsingGlobalPosition(const std::array<decimal_t,N_DIM> &p_w,const T &val_in,bool *res)const{
+    std::array<int,N_DIM> coord = GetCoordUsingGlobalPosition(p_w);
+    T val;
+    if(GetValueUsingCoordinate(coord,&val) != kSuccess){
+        *res = false;
+    }else{
+        *res = (val == val_in);
+    }
+    return kSuccess;
+}
+
+template <typename T,int N_DIM>
+std::array<int,N_DIM> GridMapND<T,N_DIM>::GetCoordUsingGlobalPosition(const std::array<decimal_t,N_DIM> &p_w)const{
+    std::array<int,N_DIM> coord = {};
+    for(int i = 0; i < N_DIM;++i){
+        coord[i] = std::round((p_w[i]-origin_[i])/dims_resolution_[i]);
+    }
+    return coord;
+}
+
 ```
