@@ -273,6 +273,25 @@ ErrorType EudmPlanner::SimulateActionSequence(Vehicle& ego_vehicle,ForwardSimAge
     vec_E<std::unordered_map<int, vec_E<common::Vehicle>>> sub_surround_trajs(n_sub_threads);
 
     SimulateScenario(ego_vehicle,surrounding_fsagents,action_seq,seq_id,0,&sub_sim_res,&sub_risky_res,&sub_sim_info,&sub_progress_cost,&sub_tail_cost,&sub_forward_trajs,&sub_forward_lat_behaviors,&sub_forward_lon_behaviors,&sub_surround_trajs);
+
+    if (sub_sim_res.front() == 0) {
+        sim_res_[seq_id] = 0;
+        sim_info_[seq_id] = sub_sim_info.front();
+        return kWrongStatus;
+    }
+
+    // ~ Here use the default scenario
+    sim_res_[seq_id] = 1;
+    risky_res_[seq_id] = sub_risky_res.front();
+    sim_info_[seq_id] = sub_sim_info.front();
+    progress_cost_[seq_id] = sub_progress_cost.front();
+    tail_cost_[seq_id] = sub_tail_cost.front();
+    forward_trajs_[seq_id] = sub_forward_trajs.front();
+    forward_lat_behaviors_[seq_id] = sub_forward_lat_behaviors.front();
+    forward_lon_behaviors_[seq_id] = sub_forward_lon_behaviors.front();
+    surround_trajs_[seq_id] = sub_surround_trajs.front();
+
+    return kSuccess;
 }
 
 ErrorType EudmPlanner::SimulateScenario(Vehicle &ego_vehicle,ForwardSimAgentSet &surrounding_fsagents,vector<DcpAction> &action_seq,const int& seq_id,const int &sub_seq_id,vector<int> *sub_sim_res,,vector<int> *sub_risky_res,vector<string> *sub_sim_info,vector<vector<ConstStructrue>> *sub_progress_cost,vector<CostStructure> * sub_tail_cost,vec_E<vec_E<Vehicle>> *sub_forward_trajs,vector<vector<LateralBehavior>> *sub_forward_lat_behaviors,vector<vector<LongitudinalBehavior>> *sub_forward_lon_behaviors,vec_E<unordered_map<int,vec_E<Vehicle>>> *sub_surround_trajs){
